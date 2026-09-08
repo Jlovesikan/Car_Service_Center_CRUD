@@ -6,7 +6,10 @@ const connectDB=require("./config/db.js");
 
 const authRoutes=require("./routes/authRoutes.js");
 const customerRoutes = require("./routes/customerRoutes");
-
+const vehicleRoutes = require("./routes/vehicleRoutes");
+const mechanicRoutes = require("./routes/mechanicRoutes");
+const serviceRoutes = require("./routes/serviceRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
 
 dotenv.config();
 
@@ -21,6 +24,10 @@ app.use(express.json());
 
 app.use("/api/auth",authRoutes);
 app.use("/api/customers", customerRoutes);
+app.use("/api/vehicles", vehicleRoutes);
+app.use("/api/mechanics", mechanicRoutes);
+app.use("/api/services", serviceRoutes);
+app.use("/api/payments", paymentRoutes);
 
 app.get("/",(req,res)=>{
     res.status(200).json({
