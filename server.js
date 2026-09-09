@@ -10,6 +10,7 @@ const vehicleRoutes = require("./routes/vehicleRoutes");
 const mechanicRoutes = require("./routes/mechanicRoutes");
 const serviceRoutes = require("./routes/serviceRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
 
 dotenv.config();
 
@@ -28,6 +29,7 @@ app.use("/api/vehicles", vehicleRoutes);
 app.use("/api/mechanics", mechanicRoutes);
 app.use("/api/services", serviceRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 app.get("/",(req,res)=>{
     res.status(200).json({

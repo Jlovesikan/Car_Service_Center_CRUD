@@ -70,30 +70,55 @@ const createVehicle = async (req, res) => {
 };
 
 //Find All Details
-const getVehicles=async(req,res)=>{
-    try {
-        
-        const vehicles=await Vehicle.find()
-        .populate("customer","name email phone")
-        .sort({createAt:-1});
+const getVehicles = async (req, res) => {
+  try {
+    const { search } = req.query;
 
-        if(!vehicles){
-         return res.status(404).json({
-         message: "Vehicles not found",
-         });
-        }
-         
-        res.status(200).json({
-          count: vehicles.length,
-          vehicles,
-        });
-    } catch (error) {
-      res.status(500).json({
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+
+    const skip = (page - 1) * limit;
+
+    let filter = {};
+
+    if (search) {
+      filter = {
+        $or: [
+          { vehicleNumber: { $regex: search, $options: "i" } },
+          { brand: { $regex: search, $options: "i" } },
+          { model: { $regex: search, $options: "i" } },
+        ],
+      };
+    }
+
+    const [vehicles, totalVehicles] = await Promise.all([
+      Vehicle.find(filter)
+        .populate("customer", "name email phone")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+
+      Vehicle.countDocuments(filter),
+    ]);
+
+    const totalPages = Math.ceil(totalVehicles / limit);
+
+    res.status(200).json({
+      count: vehicles.length,
+      totalVehicles,
+      currentPage: page,
+      totalPages,
+      limit,
+      vehicles,
+    });
+    
+  } catch (error) {
+    res.status(500).json({
       message: "Server error",
       error: error.message,
     });
-    }
-}
+  }
+};
 
 //Find Single Details
 const getVehicleById = async (req, res) => {
