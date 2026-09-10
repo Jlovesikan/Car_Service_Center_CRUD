@@ -1,4 +1,5 @@
 const Customer=require("../models/Customer.js");
+const mongoose =require("mongoose")
 
 //Create Customer Details
 const createCustomer=async(req,res)=>{
@@ -53,6 +54,12 @@ const getCustomers = async (req, res) => {
     const page=Number(req.query.page)||1;
     const limit=Number(req.query.limit)||10;
 
+    if (page < 1 || limit < 1) {
+    return res.status(400).json({
+    message: "Page and limit must be greater than 0",
+    });
+    }
+
     const skip=((page-1) * limit);
 
     let filter = {};
@@ -86,6 +93,9 @@ const getCustomers = async (req, res) => {
       currentPage: page,
       totalPages,
       limit,
+      message: customers.length === 0
+      ? "No payment details found"
+      : "Payments fetched successfully",
       customers,
     });
 
@@ -100,6 +110,13 @@ const getCustomers = async (req, res) => {
 //Find Single Customer Details
 const getCustomerById = async (req, res) => {
   try {
+
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({
+        message: "Invalid customer ID",
+      });
+    }
+
     const customer = await Customer.findById(req.params.id);
 
     if (!customer) {
@@ -122,6 +139,13 @@ const getCustomerById = async (req, res) => {
 //Update Customer Details
 const updateCustomer=async(req,res)=>{
     try {
+
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({
+        message: "Invalid customer ID",
+        });
+        }
+
         const { name, email, phone, address } = req.body;
         const customer= await Customer.findByIdAndUpdate(
             req.params.id,
@@ -153,6 +177,12 @@ const updateCustomer=async(req,res)=>{
 //Delete Customer Details
 const deleteCustomer = async (req, res) => {
   try {
+
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return res.status(400).json({
+    message: "Invalid customer ID",
+    });
+    }
     const customer = await Customer.findByIdAndDelete(req.params.id);
 
     if (!customer) {

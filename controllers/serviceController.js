@@ -3,6 +3,8 @@ const Customer = require("../models/Customer");
 const Vehicle = require("../models/Vehicle");
 const Mechanic = require("../models/Mechanic");
 
+const mongoose = require("mongoose");
+
 //Create Service Details
 const createService=async(req,res)=>{
     try {
@@ -87,14 +89,68 @@ const createService=async(req,res)=>{
 //Find All Service
 const getServices = async (req, res) => {
   try {
-    const services = await Service.find()
+
+    const {search,status}=req.query;
+
+    const page=req.query.page||1;
+    const limit=req.query.limit||10;
+
+    if (page < 1 || limit < 1) {
+    return res.status(400).json({
+    message: "Page and limit must be greater than 0",
+    });
+    }
+
+    const skip=(page-1)*limit;
+
+    let filter={};
+
+    if(search){
+      filter.$or=[
+        {servicetype:{$regex:search,$options:"i"}},
+        {description:{$regex:search,$options:"i"}},
+      ]
+    }
+
+    const validStatuses = [
+      "Pending",
+      "In Progress",
+      "Completed",
+      "Cancelled",
+    ];
+
+    if (status && !validStatuses.includes(status)) {
+     return res.status(400).json({
+      message: "Invalid service status",
+    });
+    }
+
+    if(status){
+      filter.status=status;
+    }
+    const [services,totalServices] = await Promise.all([
+      Service.find(filter)
       .populate("customer", "name email phone")
       .populate("vehicle", "vehicleNumber brand model year")
       .populate("mechanic", "name phone specialization")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .skip(skip),
+
+       Service.countDocuments(filter),
+    ]);
+
+    const totalPages = Math.ceil(totalServices / limit);
 
     res.status(200).json({
       count: services.length,
+      totalServices,
+      currentPage: page,
+      totalPages,
+      limit,
+      message: services.length === 0
+      ? "No payment details found"
+      : "Payments fetched successfully",
       services,
     });
   } catch (error) {
@@ -108,6 +164,13 @@ const getServices = async (req, res) => {
 //FindOne Service Details
 const getServiceById = async (req, res) => {
   try {
+
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return res.status(400).json({
+    message: "Invalid service ID",
+    });
+    }
+
     const service = await Service.findById(req.params.id)
       .populate("customer", "name email phone")
       .populate("vehicle", "vehicleNumber brand model year")
@@ -133,6 +196,13 @@ const getServiceById = async (req, res) => {
 //Update Service Details
 const updateService = async (req, res) => {
   try {
+
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return res.status(400).json({
+    message: "Invalid service ID",
+    });
+    }
+
     const {
       customer,
       vehicle,
@@ -231,6 +301,13 @@ const updateService = async (req, res) => {
 //Delete Service Details
 const deleteService = async (req, res) => {
   try {
+
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return res.status(400).json({
+    message: "Invalid service ID",
+    });
+    }
+
     const service = await Service.findByIdAndDelete(req.params.id);
 
     if (!service) {

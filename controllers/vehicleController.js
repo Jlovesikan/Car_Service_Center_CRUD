@@ -1,6 +1,8 @@
 const Vehicle = require("../models/Vehicle");
 const Customer = require("../models/Customer");
 
+const mongoose = require("mongoose");
+
 //Create Vehicle Details
 const createVehicle = async (req, res) => {
   try {
@@ -77,6 +79,13 @@ const getVehicles = async (req, res) => {
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 10;
 
+
+    if (page < 1 || limit < 1) {
+    return res.status(400).json({
+    message: "Page and limit must be greater than 0",
+    });
+    }
+
     const skip = (page - 1) * limit;
 
     let filter = {};
@@ -109,6 +118,9 @@ const getVehicles = async (req, res) => {
       currentPage: page,
       totalPages,
       limit,
+      message: vehicles.length === 0
+      ? "No payment details found"
+      : "Payments fetched successfully",
       vehicles,
     });
     
@@ -123,6 +135,13 @@ const getVehicles = async (req, res) => {
 //Find Single Details
 const getVehicleById = async (req, res) => {
   try {
+
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return res.status(400).json({
+    message: "Invalid vehicle ID",
+    });
+    }
+
     const vehicle = await Vehicle.findById(req.params.id)
       .populate("customer", "name email phone");
 
@@ -146,6 +165,12 @@ const getVehicleById = async (req, res) => {
 //Update Vehicle Details
 const updateVehicle=async(req,res)=>{
     try {
+
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return res.status(400).json({
+    message: "Invalid vehicle ID",
+    });
+    } 
     const  {
       customer,
       vehicleNumber,
@@ -216,6 +241,13 @@ const updateVehicle=async(req,res)=>{
 //Delete Vehicle Details
 const deleteVehicle = async (req, res) => {
   try {
+
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return res.status(400).json({
+    message: "Invalid vehicle ID",
+    });
+    }
+    
     const vehicle = await Vehicle.findByIdAndDelete(req.params.id);
 
     if (!vehicle) {
