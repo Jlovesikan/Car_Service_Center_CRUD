@@ -149,8 +149,8 @@ const getServices = async (req, res) => {
       totalPages,
       limit,
       message: services.length === 0
-      ? "No payment details found"
-      : "Payments fetched successfully",
+      ? "No services details found"
+      : "Services fetched successfully",
       services,
     });
   } catch (error) {

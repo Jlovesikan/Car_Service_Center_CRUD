@@ -119,8 +119,8 @@ const getVehicles = async (req, res) => {
       totalPages,
       limit,
       message: vehicles.length === 0
-      ? "No payment details found"
-      : "Payments fetched successfully",
+      ? "No vehicles details found"
+      : "Vehicles fetched successfully",
       vehicles,
     });
     

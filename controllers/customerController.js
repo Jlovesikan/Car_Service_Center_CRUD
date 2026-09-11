@@ -94,8 +94,8 @@ const getCustomers = async (req, res) => {
       totalPages,
       limit,
       message: customers.length === 0
-      ? "No payment details found"
-      : "Payments fetched successfully",
+      ? "No customers details found"
+      : "Customers fetched successfully",
       customers,
     });
 
