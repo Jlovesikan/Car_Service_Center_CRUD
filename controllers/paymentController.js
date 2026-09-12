@@ -4,52 +4,120 @@ const Service = require("../models/Service");
 const mongoose = require("mongoose");
 
 //Create Payment details
-const createPayment = async (req, res) => {
+const getPayments = async (req, res) => {
   try {
-    const {
-      service,
-      amount,
-      paymentDate,
-      paymentMethod,
-      paymentStatus,
-      transactionId,
-    } = req.body;
+    const { search, status, method } = req.query;
 
-    
-    if (
-      !service ||
-      amount === undefined ||
-      !paymentDate ||
-      !paymentMethod
-    ) {
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+
+    if (page < 1 || limit < 1) {
       return res.status(400).json({
-        message: "Please provide all required fields",
+        message: "Page and limit must be greater than 0",
       });
     }
 
-   
-    const existingService = await Service.findById(service);
+    const skip = (page - 1) * limit;
 
-    if (!existingService) {
-      return res.status(404).json({
-        message: "Service not found",
-      });
+    let filter = {};
+
+    // Search by transaction ID
+    if (search) {
+      filter.transactionId = {
+        $regex: search,
+        $options: "i",
+      };
     }
 
-    
-    const payment = await Payment.create({
-      service,
-      amount,
-      paymentDate,
-      paymentMethod,
-      paymentStatus,
-      transactionId,
+    // Payment Status validation
+    const validStatuses = [
+      "Pending",
+      "Paid",
+      "Failed",
+      "Refunded",
+    ];
+
+    let validStatus;
+
+    if (status) {
+      validStatus = validStatuses.find(
+        (item) => item.toLowerCase() === status.toLowerCase()
+      );
+
+      if (!validStatus) {
+        return res.status(400).json({
+          message: "Invalid payment status",
+        });
+      }
+
+      filter.paymentStatus = validStatus;
+    }
+
+    // Payment Method validation
+    const validMethods = [
+      "Cash",
+      "Card",
+      "Bank Transfer",
+      "Online",
+    ];
+
+    let validMethod;
+
+    if (method) {
+      validMethod = validMethods.find(
+        (item) => item.toLowerCase() === method.toLowerCase()
+      );
+
+      if (!validMethod) {
+        return res.status(400).json({
+          message: "Invalid payment method",
+        });
+      }
+
+      filter.paymentMethod = validMethod;
+    }
+
+    const [payments, totalPayments] = await Promise.all([
+      Payment.find(filter)
+        .populate({
+          path: "service",
+          populate: [
+            {
+              path: "customer",
+              select: "name email phone",
+            },
+            {
+              path: "vehicle",
+              select: "vehicleNumber brand model",
+            },
+            {
+              path: "mechanic",
+              select: "name phone specialization",
+            },
+          ],
+        })
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .skip(skip),
+
+      Payment.countDocuments(filter),
+    ]);
+
+    const totalPages = Math.ceil(totalPayments / limit);
+
+    res.status(200).json({
+      count: payments.length,
+      totalPayments,
+      currentPage: page,
+      totalPages,
+      limit,
+      message:
+        payments.length === 0
+          ? "No payment details found"
+          : "Payments fetched successfully",
+      payments,
     });
 
-    res.status(201).json({
-      message: "Payment created successfully",
-      payment,
-    });
   } catch (error) {
     res.status(500).json({
       message: "Server error",
