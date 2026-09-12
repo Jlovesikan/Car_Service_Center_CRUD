@@ -4,6 +4,61 @@ const Service = require("../models/Service");
 const mongoose = require("mongoose");
 
 //Create Payment details
+const createPayment = async (req, res) => {
+  try {
+    const {
+      service,
+      amount,
+      paymentDate,
+      paymentMethod,
+      paymentStatus,
+      transactionId,
+    } = req.body;
+
+    
+    if (
+      !service ||
+      amount === undefined ||
+      !paymentDate ||
+      !paymentMethod
+    ) {
+      return res.status(400).json({
+        message: "Please provide all required fields",
+      });
+    }
+
+   
+    const existingService = await Service.findById(service);
+
+    if (!existingService) {
+      return res.status(404).json({
+        message: "Service not found",
+      });
+    }
+
+    
+    const payment = await Payment.create({
+      service,
+      amount,
+      paymentDate,
+      paymentMethod,
+      paymentStatus,
+      transactionId,
+    });
+
+    res.status(201).json({
+      message: "Payment created successfully",
+      payment,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+//Find All Payment Details
 const getPayments = async (req, res) => {
   try {
     const { search, status, method } = req.query;
@@ -21,7 +76,7 @@ const getPayments = async (req, res) => {
 
     let filter = {};
 
-    // Search by transaction ID
+    
     if (search) {
       filter.transactionId = {
         $regex: search,
@@ -29,7 +84,7 @@ const getPayments = async (req, res) => {
       };
     }
 
-    // Payment Status validation
+   
     const validStatuses = [
       "Pending",
       "Paid",
@@ -53,7 +108,7 @@ const getPayments = async (req, res) => {
       filter.paymentStatus = validStatus;
     }
 
-    // Payment Method validation
+    
     const validMethods = [
       "Cash",
       "Card",
@@ -115,120 +170,6 @@ const getPayments = async (req, res) => {
         payments.length === 0
           ? "No payment details found"
           : "Payments fetched successfully",
-      payments,
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      message: "Server error",
-      error: error.message,
-    });
-  }
-};
-
-//Find All Payment Details
-const getPayments = async (req, res) => {
-  try {
-
-    const{search, status, method}=req.query;
-
-    const page=req.query.page||1;
-    const limit=req.query.limit||10;
-
-    if (page < 1 || limit < 1) {
-    return res.status(400).json({
-    message: "Page and limit must be greater than 0",
-    });
-    }
-
-    const skip=(page-1)*limit;
-
-    let filter={};
-
-    if(search){
-     filter.transactionId = {
-        $regex: search,
-        $options: "i",
-     };
-    }
-
-      const validStatuses = [
-        "Pending",
-        "Paid",
-        "Failed",
-        "Refunded",
-      ];
-
-      const validStatus = validStatuses.find(
-        (item) => item.toLowerCase() === status.toLowerCase()
-      );
-
-      if (status && !validStatus) {
-        return res.status(400).json({
-          message: "Invalid payment status",
-        });
-      }
-
-    if (validStatus) {
-      filter.paymentStatus = validStatus;
-    }
-      
-      const validMethods = [
-        "Cash",
-        "Card",
-        "Bank Transfer",
-        "Online",
-      ];
-
-      const validMethod = validMethods.find(
-        (item) => item.toLowerCase() === method.toLowerCase()
-      );
-
-      if (method && !validMethod) {
-        return res.status(400).json({
-          message: "Invalid payment method",
-        });
-      }
-        if (validMethod) {
-        filter.paymentMethod = validMethod;
-        }
-    const [payments, totalPayments] = await Promise.all([
-      Payment.find(filter)
-      .populate({
-        path: "service",
-        populate: [
-          {
-            path: "customer",
-            select: "name email phone",
-          },
-          {
-            path: "vehicle",
-            select: "vehicleNumber brand model",
-          },
-          {
-            path: "mechanic",
-            select: "name phone specialization",
-          },
-        ],
-      })
-      .sort({ createdAt: -1 })
-      .limit(limit)
-      .skip(skip),
-
-      Service.countDocuments(filter),
-    ]);
-
-    const totalPages = Math.ceil(totalPayments / limit);
-
-    res.status(200).json({
-      count: payments.length,
-      totalPayments,
-      currentPage: page,
-      totalPages,
-      limit,
-      message: payments.length === 0
-      ? "No payment details found"
-      : "Payments fetched successfully",
       payments,
     });
 
