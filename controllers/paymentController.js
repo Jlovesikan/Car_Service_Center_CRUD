@@ -161,7 +161,7 @@ const getPayments = async (req, res) => {
       message: payments.length === 0
       ? "No payment details found"
       : "Payments fetched successfully",
-      payments,s
+      payments,
     });
 
   } catch (error) {
